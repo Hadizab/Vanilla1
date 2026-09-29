@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vanilla Cupcakes · video upload</title>
+  <title>Vanilla Cupcakes · persistent video upload & download</title>
   <style>
     * {
       margin: 0;
@@ -57,6 +57,32 @@
       font-weight: 400;
       border-left: 4px solid #d9b8a4;
       padding-left: 1rem;
+    }
+
+    .storage-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #e6f0e6;
+      color: #2d5a2d;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.3rem 0.9rem;
+      border-radius: 2rem;
+      margin-top: 0.6rem;
+      border: 1px solid #b8d4b8;
+    }
+
+    .storage-indicator.saving {
+      background: #fff3d6;
+      color: #8a6d1f;
+      border-color: #e6d29c;
+    }
+
+    .storage-indicator.error {
+      background: #ffede3;
+      color: #9b4b2b;
+      border-color: #e6b8a3;
     }
 
     .drop-area {
@@ -139,6 +165,7 @@
       flex-direction: column;
       gap: 0.2rem;
       overflow: hidden;
+      flex: 1;
     }
 
     .file-name {
@@ -153,6 +180,7 @@
       display: flex;
       gap: 0.75rem;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     .badge {
@@ -164,6 +192,11 @@
       border-radius: 2rem;
       letter-spacing: 0.02em;
       text-transform: uppercase;
+    }
+
+    .badge.persisted {
+      background: #5f8b5f;
+      color: #fff;
     }
 
     .remove-btn {
@@ -205,11 +238,29 @@
       line-height: 1;
     }
 
+    .success-toast {
+      background: #e6f0e6;
+      border-left: 6px solid #5f8b5f;
+      color: #2d5a2d;
+      padding: 0.9rem 1.2rem;
+      border-radius: 1rem;
+      font-weight: 500;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .success-toast span {
+      font-size: 1.4rem;
+    }
+
     .actions {
       display: flex;
       gap: 0.8rem;
       justify-content: flex-end;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .btn-primary {
@@ -238,6 +289,37 @@
     }
 
     .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-download {
+      background: #5f8b5f;
+      color: #fff7f0;
+      border: none;
+      padding: 0.9rem 2rem;
+      border-radius: 3rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 8px 18px -6px rgba(95, 139, 95, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-download:hover:not(:disabled) {
+      background: #4f7a4f;
+      box-shadow: 0 10px 22px -8px rgba(95, 139, 95, 0.55);
+    }
+
+    .btn-download:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .btn-download:disabled {
       opacity: 0.5;
       cursor: not-allowed;
       box-shadow: none;
@@ -279,23 +361,6 @@
       outline: none;
     }
 
-    .success-toast {
-      background: #e6f0e6;
-      border-left: 6px solid #5f8b5f;
-      color: #2d5a2d;
-      padding: 0.9rem 1.2rem;
-      border-radius: 1rem;
-      font-weight: 500;
-      margin-bottom: 1.2rem;
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-
-    .success-toast span {
-      font-size: 1.4rem;
-    }
-
     .metadata-row {
       display: flex;
       flex-wrap: wrap;
@@ -310,6 +375,34 @@
       color: #2e1e14;
     }
 
+    .loading-overlay {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #fffaf5;
+      border-radius: 1rem;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.5rem;
+      border: 1px dashed #d9b8a4;
+      color: #7b5e4b;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .spinner {
+      width: 1.1rem;
+      height: 1.1rem;
+      border: 2.5px solid #e6d6cb;
+      border-top-color: #b28b74;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     @media (max-width: 480px) {
       .card {
         padding: 1.8rem 1.3rem;
@@ -321,10 +414,11 @@
       }
 
       .actions {
-        flex-direction: column-reverse;
+        flex-direction: column;
       }
 
       .btn-primary,
+      .btn-download,
       .btn-secondary {
         width: 100%;
         justify-content: center;
@@ -338,7 +432,10 @@
       <span>🧁</span> Vanilla Cupcakes
     </h1>
     <div class="subhead">
-      Upload one video · max 30 minutes or 3 GB
+      Persistent video · max 30 minutes or 3 GB
+    </div>
+    <div id="storageIndicator" class="storage-indicator hidden">
+      <span>💾</span> <span id="storageIndicatorText">Saved to local storage</span>
     </div>
 
     <!-- hidden file input (single file only) -->
@@ -350,6 +447,12 @@
       <div class="drop-text">Drop your vanilla cupcakes video here</div>
       <div class="drop-hint">or click to browse</div>
       <button class="browse-btn" id="browseBtn" type="button">Choose video</button>
+    </div>
+
+    <!-- loading overlay (restoring from storage) -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <span id="loadingText">Restoring saved video…</span>
     </div>
 
     <!-- validation error message -->
@@ -384,8 +487,11 @@
     <!-- action buttons -->
     <div class="actions">
       <button class="btn-secondary" id="clearAllBtn" type="button">Clear</button>
+      <button class="btn-download" id="downloadBtn" type="button" disabled>
+        <span>⬇️</span> Download
+      </button>
       <button class="btn-primary" id="uploadBtn" type="button" disabled>
-        <span>📤</span> Upload vanilla cupcakes
+        <span>📤</span> Upload
       </button>
     </div>
   </div>
@@ -396,10 +502,88 @@
       const MAX_SIZE_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
       const MAX_DURATION_SEC = 30 * 60; // 30 minutes = 1800 sec
 
+      // ---------- IndexedDB SETUP ----------
+      const DB_NAME = 'VanillaCupcakesDB';
+      const DB_VERSION = 1;
+      const STORE_NAME = 'videos';
+      const VIDEO_KEY = 'currentVideo';
+
+      let dbPromise = null;
+
+      function openDB() {
+        if (dbPromise) return dbPromise;
+        dbPromise = new Promise((resolve, reject) => {
+          if (!window.indexedDB) {
+            reject(new Error('IndexedDB is not supported in this browser.'));
+            return;
+          }
+          const request = indexedDB.open(DB_NAME, DB_VERSION);
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              db.createObjectStore(STORE_NAME);
+            }
+          };
+          request.onsuccess = (event) => resolve(event.target.result);
+          request.onerror = (event) => reject(event.target.error);
+        });
+        return dbPromise;
+      }
+
+      // Save a Blob/File to IndexedDB along with its metadata
+      async function saveVideoToDB(file, duration) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const record = {
+            blob: file,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            lastModified: file.lastModified,
+            duration: duration,
+            savedAt: Date.now()
+          };
+          const req = store.put(record, VIDEO_KEY);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      // Load saved video record from IndexedDB
+      async function loadVideoFromDB() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(VIDEO_KEY);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      // Delete saved video from IndexedDB
+      async function deleteVideoFromDB() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.delete(VIDEO_KEY);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
       // ---------- DOM refs ----------
       const dropArea = document.getElementById('dropArea');
       const fileInput = document.getElementById('fileInput');
       const browseBtn = document.getElementById('browseBtn');
+
+      const storageIndicator = document.getElementById('storageIndicator');
+      const storageIndicatorText = document.getElementById('storageIndicatorText');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
 
       const errorBox = document.getElementById('errorBox');
       const errorText = document.getElementById('errorText');
@@ -415,12 +599,14 @@
       const videoPreview = document.getElementById('videoPreview');
 
       const uploadBtn = document.getElementById('uploadBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
       const clearAllBtn = document.getElementById('clearAllBtn');
 
       // ---------- STATE ----------
-      let currentFile = null;          // File object
+      let currentFile = null;          // File or Blob object
       let currentVideoDuration = null; // in seconds (float)
       let objectUrl = null;            // to revoke
+      let isRestoring = false;         // flag to skip auto-save during restore
 
       // ---------- UTILS ----------
       function formatFileSize(bytes) {
@@ -442,31 +628,37 @@
         return `${mins}m ${secs}s`;
       }
 
-      // hide messages
       function hideMessages() {
         errorBox.classList.add('hidden');
         successBox.classList.add('hidden');
       }
 
-      // show error
       function showError(message) {
         successBox.classList.add('hidden');
         errorText.textContent = message;
         errorBox.classList.remove('hidden');
       }
 
-      // show success
       function showSuccess(message) {
         errorBox.classList.add('hidden');
         successText.textContent = message;
         successBox.classList.remove('hidden');
-        // auto-hide success after 4 seconds
         setTimeout(() => {
           successBox.classList.add('hidden');
         }, 4000);
       }
 
-      // revoke object url to free memory
+      function setStorageIndicator(state, text) {
+        storageIndicator.classList.remove('hidden', 'saving', 'error');
+        if (state === 'saving') storageIndicator.classList.add('saving');
+        if (state === 'error') storageIndicator.classList.add('error');
+        storageIndicatorText.textContent = text || 'Saved to local storage';
+      }
+
+      function hideStorageIndicator() {
+        storageIndicator.classList.add('hidden');
+      }
+
       function revokeObjectUrl() {
         if (objectUrl) {
           URL.revokeObjectURL(objectUrl);
@@ -474,8 +666,8 @@
         }
       }
 
-      // reset everything: clear file, UI, video preview
-      function resetFile(keepMessages = false) {
+      // Reset UI state (does not delete from DB unless explicitly asked)
+      function resetFileUI(keepMessages = false) {
         revokeObjectUrl();
         if (!keepMessages) hideMessages();
 
@@ -484,139 +676,245 @@
 
         fileInput.value = '';
         fileInfoBox.classList.add('hidden');
-        // clear video src
         videoPreview.removeAttribute('src');
         videoPreview.load();
 
-        // disable upload button
         uploadBtn.disabled = true;
+        downloadBtn.disabled = true;
 
-        // remove any metadata display
         durationRow.innerHTML = '';
         fileNameEl.textContent = '';
         fileSizeEl.textContent = '';
       }
 
-      // ---------- VALIDATION & FILE HANDLING ----------
+      // Full reset including DB deletion
+      async function clearAll(keepMessages = false) {
+        resetFileUI(keepMessages);
+        hideStorageIndicator();
+        try {
+          await deleteVideoFromDB();
+        } catch (err) {
+          console.warn('Could not delete from IndexedDB:', err);
+        }
+      }
+
+      // ---------- VALIDATION ----------
       function validateFile(file) {
-        // 1. check size (≤ 3 GB)
         if (file.size > MAX_SIZE_BYTES) {
           return { valid: false, reason: `File is too large (${formatFileSize(file.size)}). Maximum allowed is 3 GB.` };
         }
-
-        // 2. check type is video (extra safety, but accept video/*)
         if (!file.type.startsWith('video/')) {
           return { valid: false, reason: 'Only video files are allowed. Please select a video (e.g., MP4, MOV).' };
         }
-
-        // 3. duration will be checked after metadata loads (asynchronous)
-        //    we return valid:true and handle duration separately
         return { valid: true, reason: '' };
       }
 
-      // process file: validate size/type, then metadata for duration
-      function processFile(file) {
-        hideMessages();
+      // ---------- RENDER FILE (used for both new uploads and restored videos) ----------
+      function renderFile(file, duration, options = {}) {
+        const { fromStorage = false } = options;
 
-        // basic validation (size + type)
+        // set state
+        currentFile = file;
+        currentVideoDuration = duration;
+
+        // update UI
+        fileNameEl.textContent = file.name || 'vanilla-cupcakes-video.mp4';
+        fileSizeEl.textContent = formatFileSize(file.size);
+        fileInfoBox.classList.remove('hidden');
+
+        const badgeText = fromStorage ? 'persisted' : 'ready';
+        const badgeClass = fromStorage ? 'badge persisted' : 'badge';
+
+        durationRow.innerHTML = `
+          <span><strong>Duration:</strong> ${formatDuration(duration)}</span>
+          <span><strong>Size:</strong> ${formatFileSize(file.size)}</span>
+          <span class="${badgeClass}">${badgeText}</span>
+        `;
+
+        // create object URL for preview
+        revokeObjectUrl();
+        objectUrl = URL.createObjectURL(file);
+        videoPreview.src = objectUrl;
+
+        // enable buttons
+        uploadBtn.disabled = false;
+        downloadBtn.disabled = false;
+
+        // show storage indicator if from storage
+        if (fromStorage) {
+          setStorageIndicator('', 'Loaded from local storage');
+        } else {
+          hideStorageIndicator();
+        }
+      }
+
+      // ---------- METADATA + SAVE PIPELINE ----------
+      function processNewFile(file) {
+        hideMessages();
+        hideStorageIndicator();
+
         const basicCheck = validateFile(file);
         if (!basicCheck.valid) {
-          resetFile(true); // keep error message visible after reset
+          resetFileUI(true);
           showError(basicCheck.reason);
           return;
         }
 
-        // if there is already a file, revoke old url
-        revokeObjectUrl();
-
-        // set current file (temporary, pending duration check)
-        currentFile = file;
-
-        // show file info in UI (but we'll wait for duration to enable upload)
+        // temporarily show file info while we read metadata
+        resetFileUI(true);
         fileNameEl.textContent = file.name;
         fileSizeEl.textContent = formatFileSize(file.size);
         fileInfoBox.classList.remove('hidden');
 
-        // create object URL for preview & metadata
-        objectUrl = URL.createObjectURL(file);
-        videoPreview.src = objectUrl;
+        // use a temporary video element to read duration without disturbing main UI
+        const tempVideo = document.createElement('video');
+        tempVideo.preload = 'metadata';
+        const tempUrl = URL.createObjectURL(file);
+        tempVideo.src = tempUrl;
 
-        // Set up duration check with timeout (safety)
-        let durationCheckFinished = false;
+        let finished = false;
 
-        const onMetadataLoaded = () => {
-          if (durationCheckFinished) return;
-          durationCheckFinished = true;
+        const cleanupTemp = () => {
+          URL.revokeObjectURL(tempUrl);
+          tempVideo.removeAttribute('src');
+          tempVideo.load();
+        };
 
-          // get duration from video element
-          const duration = videoPreview.duration; // in seconds
+        const onMeta = async () => {
+          if (finished) return;
+          finished = true;
+
+          const duration = tempVideo.duration;
+          cleanupTemp();
 
           if (isNaN(duration) || duration === Infinity || duration <= 0) {
-            // fallback: we can't determine duration (unusual), but we allow only if size OK? 
-            // To be safe, show error because we cannot confirm duration <= 30 min.
-            // However, we could allow upload with warning, but spec says max 30 min -> we enforce.
-            // But some videos might have duration 0? rare. We'll treat as invalid.
-            resetFile(true);
+            resetFileUI(true);
             showError('Could not determine video duration. Please try another file.');
             return;
           }
 
-          // check duration <= 1800 sec
           if (duration > MAX_DURATION_SEC) {
-            resetFile(true);
+            resetFileUI(true);
             showError(`Video is too long (${formatDuration(duration)}). Maximum allowed is 30 minutes.`);
             return;
           }
 
-          // all good: duration ok
-          currentVideoDuration = duration;
+          // All validations passed → render UI
+          renderFile(file, duration, { fromStorage: false });
 
-          // Update UI with duration
-          durationRow.innerHTML = `
-            <span><strong>Duration:</strong> ${formatDuration(duration)}</span>
-            <span><strong>Size:</strong> ${formatFileSize(file.size)}</span>
-            <span class="badge">ready</span>
-          `;
-
-          // Enable upload button (since file exists and duration is valid)
-          uploadBtn.disabled = false;
-
-          // Hide any previous errors
-          errorBox.classList.add('hidden');
+          // Persist to IndexedDB
+          setStorageIndicator('saving', 'Saving to local storage…');
+          try {
+            await saveVideoToDB(file, duration);
+            setStorageIndicator('', 'Saved to local storage');
+            showSuccess('Video saved and ready.');
+          } catch (err) {
+            console.error('IndexedDB save error:', err);
+            setStorageIndicator('error', 'Could not save to local storage');
+            showError('Video is ready but could not be saved persistently (storage error).');
+          }
         };
 
-        // attach listener
-        videoPreview.addEventListener('loadedmetadata', onMetadataLoaded, { once: true });
+        tempVideo.addEventListener('loadedmetadata', onMeta, { once: true });
+        tempVideo.addEventListener('error', () => {
+          if (finished) return;
+          finished = true;
+          cleanupTemp();
+          resetFileUI(true);
+          showError('Error loading video file. It may be corrupted or unsupported.');
+        }, { once: true });
 
-        // if metadata already loaded? (unlikely but check)
-        if (videoPreview.readyState >= 1) {
-          // metadata already available
-          onMetadataLoaded();
-        } else {
-          // set a timeout: if metadata doesn't load within 6 seconds, treat as error
-          setTimeout(() => {
-            if (!durationCheckFinished && currentFile === file) {
-              durationCheckFinished = true;
-              resetFile(true);
-              showError('Could not read video metadata (timed out). Please try another file.');
-            }
-          }, 7000);
+        // timeout safety
+        setTimeout(() => {
+          if (finished) return;
+          finished = true;
+          cleanupTemp();
+          resetFileUI(true);
+          showError('Timed out reading video metadata. Please try another file.');
+        }, 8000);
+      }
+
+      // ---------- RESTORE FROM INDEXEDDB ON PAGE LOAD ----------
+      async function restoreFromStorage() {
+        loadingOverlay.classList.remove('hidden');
+        loadingText.textContent = 'Restoring saved video…';
+
+        try {
+          const record = await loadVideoFromDB();
+          if (!record || !record.blob) {
+            loadingOverlay.classList.add('hidden');
+            return;
+          }
+
+          // Validate size/type again in case limits changed
+          if (record.size > MAX_SIZE_BYTES) {
+            await deleteVideoFromDB();
+            loadingOverlay.classList.add('hidden');
+            showError('Previously saved video exceeds current size limit and was removed.');
+            return;
+          }
+          if (record.duration && record.duration > MAX_DURATION_SEC) {
+            await deleteVideoFromDB();
+            loadingOverlay.classList.add('hidden');
+            showError('Previously saved video exceeds current duration limit and was removed.');
+            return;
+          }
+
+          // Reconstruct a File object from stored blob
+          const file = new File([record.blob], record.name || 'vanilla-cupcakes-video.mp4', {
+            type: record.type || 'video/mp4',
+            lastModified: record.lastModified || Date.now()
+          });
+
+          // Render UI (mark as persisted)
+          renderFile(file, record.duration, { fromStorage: true });
+          loadingOverlay.classList.add('hidden');
+        } catch (err) {
+          console.error('Restore error:', err);
+          loadingOverlay.classList.add('hidden');
+          setStorageIndicator('error', 'Could not restore saved video');
+        }
+      }
+
+      // ---------- DOWNLOAD ----------
+      function downloadVideo() {
+        if (!currentFile) {
+          showError('No video selected for download.');
+          return;
         }
 
-        // also listen for error on video element (corrupted file)
-        videoPreview.addEventListener('error', () => {
-          if (!durationCheckFinished) {
-            durationCheckFinished = true;
-            resetFile(true);
-            showError('Error loading video file. It may be corrupted or unsupported.');
-          }
-        }, { once: true });
+        if (currentFile.size > MAX_SIZE_BYTES) {
+          showError('File exceeds 3 GB limit.');
+          return;
+        }
+        if (currentVideoDuration && currentVideoDuration > MAX_DURATION_SEC) {
+          showError('Video exceeds 30 minute limit.');
+          return;
+        }
+
+        let urlToUse = objectUrl;
+        let createdNew = false;
+        if (!urlToUse) {
+          urlToUse = URL.createObjectURL(currentFile);
+          createdNew = true;
+        }
+
+        const a = document.createElement('a');
+        a.href = urlToUse;
+        a.download = (currentFile.name || 'vanilla-cupcakes-video.mp4');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        if (createdNew) {
+          setTimeout(() => URL.revokeObjectURL(urlToUse), 5000);
+        }
+
+        showSuccess(`Download started for "${currentFile.name}".`);
       }
 
       // ---------- EVENT LISTENERS ----------
-      // 1. click on drop area or browse button triggers file input
       dropArea.addEventListener('click', (e) => {
-        // if the click is directly on the browse button, avoid double trigger (but browseBtn also triggers)
         if (e.target === browseBtn) return;
         fileInput.click();
       });
@@ -626,21 +924,14 @@
         fileInput.click();
       });
 
-      // 2. file input change
       fileInput.addEventListener('change', (e) => {
         const files = e.target.files;
         if (files.length > 0) {
-          // enforce exactly one file (take first)
-          const file = files[0];
-          processFile(file);
-        } else {
-          // user cancelled
+          processNewFile(files[0]);
         }
-        // reset input so same file can be selected again after removal
         fileInput.value = '';
       });
 
-      // 3. drag & drop
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => {
         dropArea.addEventListener(ev, (e) => {
           e.preventDefault();
@@ -660,77 +951,58 @@
         dropArea.classList.remove('dragover');
         const files = e.dataTransfer.files;
         if (files.length > 0) {
-          // take first file only
           const file = files[0];
-          // check if it's a video (quick type check)
           if (!file.type.startsWith('video/')) {
             showError('Only video files are allowed.');
             return;
           }
-          processFile(file);
+          processNewFile(file);
         }
       });
 
-      // 4. remove file button
-      removeFileBtn.addEventListener('click', () => {
-        resetFile();
+      removeFileBtn.addEventListener('click', async () => {
+        await clearAll();
+        showSuccess('Video removed from local storage.');
       });
 
-      // 5. clear all button (same as reset)
-      clearAllBtn.addEventListener('click', () => {
-        resetFile();
+      clearAllBtn.addEventListener('click', async () => {
+        await clearAll();
+        showSuccess('Everything cleared.');
       });
 
-      // 6. upload button
       uploadBtn.addEventListener('click', () => {
         if (!currentFile) {
           showError('No video selected.');
           return;
         }
 
-        // double-check constraints (size & duration)
         if (currentFile.size > MAX_SIZE_BYTES) {
           showError('File exceeds 3 GB limit.');
-          resetFile(true);
           return;
         }
         if (currentVideoDuration && currentVideoDuration > MAX_DURATION_SEC) {
           showError('Video exceeds 30 minute limit.');
-          resetFile(true);
           return;
         }
 
-        // SIMULATE UPLOAD (in a real app, you'd use fetch / XMLHttpRequest)
-        // Here we just show success message and keep the file for preview.
-        // We'll also disable the upload button to prevent double upload.
         uploadBtn.disabled = true;
         showSuccess(`"${currentFile.name}" uploaded successfully! (simulated)`);
 
-        // Optional: after "upload" you could reset, but we keep the preview for demonstration.
-        // However, to match typical behavior, we keep the file visible but mark as uploaded.
-        // We'll also change the badge if needed? Not necessary.
-        // But we can update the durationRow to add a note.
-        if (durationRow) {
-          // add a subtle checkmark
-          const badge = durationRow.querySelector('.badge');
-          if (badge) badge.textContent = 'uploaded';
-        }
+        const badge = durationRow.querySelector('.badge');
+        if (badge) badge.textContent = 'uploaded';
       });
 
-      // 7. avoid memory leaks: revoke object URL when page unloads
+      downloadBtn.addEventListener('click', downloadVideo);
+
       window.addEventListener('beforeunload', () => {
         revokeObjectUrl();
       });
 
-      // 8. extra: when video ends or is played, ensure no unexpected behaviour
-      videoPreview.addEventListener('play', () => {
-        // optional: you might want to pause others, but not needed
-      });
-
       // ---------- INIT ----------
-      // ensure upload button is disabled on page load
       uploadBtn.disabled = true;
+      downloadBtn.disabled = true;
       hideMessages();
+      restoreFromStorage();
     })();
   </script>
 </body>
