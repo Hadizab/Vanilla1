@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vanilla Cupcakes · video upload</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(145deg, #fff7f0 0%, #fae9dd 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .card {
+      max-width: 680px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 2.5rem;
+      padding: 2.5rem 2.2rem;
+      box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.2),
+                  0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+      transition: all 0.2s;
+    }
+
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 2.1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #4b2e1d;
+      margin-bottom: 0.35rem;
+    }
+
+    h1 span {
+      font-size: 2.5rem;
+      line-height: 1;
+    }
+
+    .subhead {
+      color: #7b5e4b;
+      font-size: 1.05rem;
+      margin-bottom: 2rem;
+      font-weight: 400;
+      border-left: 4px solid #d9b8a4;
+      padding-left: 1rem;
+    }
+
+    .drop-area {
+      border: 2.5px dashed #d9b8a4;
+      border-radius: 2rem;
+      background: #fffaf5;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s;
+      cursor: pointer;
+      margin-bottom: 1.8rem;
+    }
+
+    .drop-area.dragover {
+      background: #f8ede4;
+      border-color: #b28b74;
+    }
+
+    .drop-area input[type="file"] {
+      display: none;
+    }
+
+    .drop-icon {
+      font-size: 3.2rem;
+      margin-bottom: 0.5rem;
+      display: block;
+      filter: drop-shadow(0 6px 8px rgba(185, 130, 90, 0.2));
+    }
+
+    .drop-text {
+      font-weight: 500;
+      color: #4b2e1d;
+      font-size: 1.2rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .drop-hint {
+      font-size: 0.9rem;
+      color: #a18472;
+    }
+
+    .browse-btn {
+      background: #d9b8a4;
+      color: #2e1e14;
+      border: none;
+      padding: 0.6rem 1.6rem;
+      border-radius: 3rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-top: 0.9rem;
+      display: inline-block;
+      transition: background 0.15s, transform 0.1s;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(185, 130, 90, 0.2);
+    }
+
+    .browse-btn:hover {
+      background: #c9a58e;
+    }
+
+    .browse-btn:active {
+      transform: scale(0.96);
+    }
+
+    .file-info {
+      background: #f5ede7;
+      border-radius: 1.5rem;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      border: 1px solid #e6d6cb;
+    }
+
+    .file-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-weight: 600;
+      color: #3c2a1e;
+      word-break: break-word;
+    }
+
+    .file-size {
+      font-size: 0.85rem;
+      color: #7b5e4b;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .badge {
+      background: #c9a58e;
+      color: #1f140e;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.7rem;
+      border-radius: 2rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .remove-btn {
+      background: transparent;
+      border: 1.5px solid #b28b74;
+      color: #7b4e33;
+      padding: 0.45rem 1.1rem;
+      border-radius: 2.5rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .remove-btn:hover {
+      background: #f0dfd4;
+      border-color: #9b735b;
+      color: #4b2e1d;
+    }
+
+    .validation-message {
+      background: #ffede3;
+      border-left: 6px solid #c97b5a;
+      color: #9b4b2b;
+      padding: 0.9rem 1.2rem;
+      border-radius: 1rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      box-shadow: 0 2px 8px rgba(201, 123, 90, 0.1);
+    }
+
+    .validation-message span {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.8rem;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: #4b2e1d;
+      color: #fff7f0;
+      border: none;
+      padding: 0.9rem 2.2rem;
+      border-radius: 3rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 8px 18px -6px rgba(75, 46, 29, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #5f3c28;
+      box-shadow: 0 10px 22px -8px rgba(75, 46, 29, 0.45);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1.5px solid #d9b8a4;
+      color: #4b2e1d;
+      padding: 0.9rem 1.8rem;
+      border-radius: 3rem;
+      font-weight: 500;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: #f5e7de;
+      border-color: #b28b74;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .video-preview-container {
+      margin-bottom: 1.8rem;
+      border-radius: 1.8rem;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 10px 25px -8px rgba(0, 0, 0, 0.25);
+    }
+
+    .video-preview-container video {
+      width: 100%;
+      max-height: 260px;
+      display: block;
+      outline: none;
+    }
+
+    .success-toast {
+      background: #e6f0e6;
+      border-left: 6px solid #5f8b5f;
+      color: #2d5a2d;
+      padding: 0.9rem 1.2rem;
+      border-radius: 1rem;
+      font-weight: 500;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .success-toast span {
+      font-size: 1.4rem;
+    }
+
+    .metadata-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.5rem;
+      font-size: 0.9rem;
+      color: #5e3f2e;
+      margin-top: 0.3rem;
+    }
+
+    .metadata-row strong {
+      font-weight: 600;
+      color: #2e1e14;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 1.8rem 1.3rem;
+        border-radius: 2rem;
+      }
+
+      h1 {
+        font-size: 1.7rem;
+      }
+
+      .actions {
+        flex-direction: column-reverse;
+      }
+
+      .btn-primary,
+      .btn-secondary {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>
+      <span>🧁</span> Vanilla Cupcakes
+    </h1>
+    <div class="subhead">
+      Upload one video · max 30 minutes or 3 GB
+    </div>
+
+    <!-- hidden file input (single file only) -->
+    <input type="file" id="fileInput" accept="video/*" style="display: none;">
+
+    <!-- drag & drop / click area -->
+    <div class="drop-area" id="dropArea">
+      <span class="drop-icon">🎬</span>
+      <div class="drop-text">Drop your vanilla cupcakes video here</div>
+      <div class="drop-hint">or click to browse</div>
+      <button class="browse-btn" id="browseBtn" type="button">Choose video</button>
+    </div>
+
+    <!-- validation error message -->
+    <div id="errorBox" class="validation-message hidden">
+      <span>⚠️</span>
+      <span id="errorText">File is too large or too long.</span>
+    </div>
+
+    <!-- success upload message -->
+    <div id="successBox" class="success-toast hidden">
+      <span>✅</span>
+      <span id="successText">Video uploaded successfully!</span>
+    </div>
+
+    <!-- selected file info + preview -->
+    <div id="fileInfoBox" class="hidden">
+      <div class="file-info">
+        <div class="file-meta">
+          <div class="file-name" id="fileName">video.mp4</div>
+          <div class="file-size" id="fileSize">0 MB</div>
+          <div class="metadata-row" id="durationRow"></div>
+        </div>
+        <button class="remove-btn" id="removeFileBtn" type="button">Remove</button>
+      </div>
+
+      <!-- video preview -->
+      <div class="video-preview-container" id="previewContainer">
+        <video id="videoPreview" controls preload="metadata"></video>
+      </div>
+    </div>
+
+    <!-- action buttons -->
+    <div class="actions">
+      <button class="btn-secondary" id="clearAllBtn" type="button">Clear</button>
+      <button class="btn-primary" id="uploadBtn" type="button" disabled>
+        <span>📤</span> Upload vanilla cupcakes
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- CONSTRAINTS ----------
+      const MAX_SIZE_BYTES = 3 * 1024 * 1024 * 1024; // 3 GB
+      const MAX_DURATION_SEC = 30 * 60; // 30 minutes = 1800 sec
+
+      // ---------- DOM refs ----------
+      const dropArea = document.getElementById('dropArea');
+      const fileInput = document.getElementById('fileInput');
+      const browseBtn = document.getElementById('browseBtn');
+
+      const errorBox = document.getElementById('errorBox');
+      const errorText = document.getElementById('errorText');
+      const successBox = document.getElementById('successBox');
+      const successText = document.getElementById('successText');
+
+      const fileInfoBox = document.getElementById('fileInfoBox');
+      const fileNameEl = document.getElementById('fileName');
+      const fileSizeEl = document.getElementById('fileSize');
+      const durationRow = document.getElementById('durationRow');
+      const removeFileBtn = document.getElementById('removeFileBtn');
+      const previewContainer = document.getElementById('previewContainer');
+      const videoPreview = document.getElementById('videoPreview');
+
+      const uploadBtn = document.getElementById('uploadBtn');
+      const clearAllBtn = document.getElementById('clearAllBtn');
+
+      // ---------- STATE ----------
+      let currentFile = null;          // File object
+      let currentVideoDuration = null; // in seconds (float)
+      let objectUrl = null;            // to revoke
+
+      // ---------- UTILS ----------
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+      }
+
+      function formatDuration(seconds) {
+        if (seconds == null || isNaN(seconds)) return '—';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        if (mins >= 60) {
+          const hrs = Math.floor(mins / 60);
+          const remainingMins = mins % 60;
+          return `${hrs}h ${remainingMins}m ${secs}s`;
+        }
+        return `${mins}m ${secs}s`;
+      }
+
+      // hide messages
+      function hideMessages() {
+        errorBox.classList.add('hidden');
+        successBox.classList.add('hidden');
+      }
+
+      // show error
+      function showError(message) {
+        successBox.classList.add('hidden');
+        errorText.textContent = message;
+        errorBox.classList.remove('hidden');
+      }
+
+      // show success
+      function showSuccess(message) {
+        errorBox.classList.add('hidden');
+        successText.textContent = message;
+        successBox.classList.remove('hidden');
+        // auto-hide success after 4 seconds
+        setTimeout(() => {
+          successBox.classList.add('hidden');
+        }, 4000);
+      }
+
+      // revoke object url to free memory
+      function revokeObjectUrl() {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
+      }
+
+      // reset everything: clear file, UI, video preview
+      function resetFile(keepMessages = false) {
+        revokeObjectUrl();
+        if (!keepMessages) hideMessages();
+
+        currentFile = null;
+        currentVideoDuration = null;
+
+        fileInput.value = '';
+        fileInfoBox.classList.add('hidden');
+        // clear video src
+        videoPreview.removeAttribute('src');
+        videoPreview.load();
+
+        // disable upload button
+        uploadBtn.disabled = true;
+
+        // remove any metadata display
+        durationRow.innerHTML = '';
+        fileNameEl.textContent = '';
+        fileSizeEl.textContent = '';
+      }
+
+      // ---------- VALIDATION & FILE HANDLING ----------
+      function validateFile(file) {
+        // 1. check size (≤ 3 GB)
+        if (file.size > MAX_SIZE_BYTES) {
+          return { valid: false, reason: `File is too large (${formatFileSize(file.size)}). Maximum allowed is 3 GB.` };
+        }
+
+        // 2. check type is video (extra safety, but accept video/*)
+        if (!file.type.startsWith('video/')) {
+          return { valid: false, reason: 'Only video files are allowed. Please select a video (e.g., MP4, MOV).' };
+        }
+
+        // 3. duration will be checked after metadata loads (asynchronous)
+        //    we return valid:true and handle duration separately
+        return { valid: true, reason: '' };
+      }
+
+      // process file: validate size/type, then metadata for duration
+      function processFile(file) {
+        hideMessages();
+
+        // basic validation (size + type)
+        const basicCheck = validateFile(file);
+        if (!basicCheck.valid) {
+          resetFile(true); // keep error message visible after reset
+          showError(basicCheck.reason);
+          return;
+        }
+
+        // if there is already a file, revoke old url
+        revokeObjectUrl();
+
+        // set current file (temporary, pending duration check)
+        currentFile = file;
+
+        // show file info in UI (but we'll wait for duration to enable upload)
+        fileNameEl.textContent = file.name;
+        fileSizeEl.textContent = formatFileSize(file.size);
+        fileInfoBox.classList.remove('hidden');
+
+        // create object URL for preview & metadata
+        objectUrl = URL.createObjectURL(file);
+        videoPreview.src = objectUrl;
+
+        // Set up duration check with timeout (safety)
+        let durationCheckFinished = false;
+
+        const onMetadataLoaded = () => {
+          if (durationCheckFinished) return;
+          durationCheckFinished = true;
+
+          // get duration from video element
+          const duration = videoPreview.duration; // in seconds
+
+          if (isNaN(duration) || duration === Infinity || duration <= 0) {
+            // fallback: we can't determine duration (unusual), but we allow only if size OK? 
+            // To be safe, show error because we cannot confirm duration <= 30 min.
+            // However, we could allow upload with warning, but spec says max 30 min -> we enforce.
+            // But some videos might have duration 0? rare. We'll treat as invalid.
+            resetFile(true);
+            showError('Could not determine video duration. Please try another file.');
+            return;
+          }
+
+          // check duration <= 1800 sec
+          if (duration > MAX_DURATION_SEC) {
+            resetFile(true);
+            showError(`Video is too long (${formatDuration(duration)}). Maximum allowed is 30 minutes.`);
+            return;
+          }
+
+          // all good: duration ok
+          currentVideoDuration = duration;
+
+          // Update UI with duration
+          durationRow.innerHTML = `
+            <span><strong>Duration:</strong> ${formatDuration(duration)}</span>
+            <span><strong>Size:</strong> ${formatFileSize(file.size)}</span>
+            <span class="badge">ready</span>
+          `;
+
+          // Enable upload button (since file exists and duration is valid)
+          uploadBtn.disabled = false;
+
+          // Hide any previous errors
+          errorBox.classList.add('hidden');
+        };
+
+        // attach listener
+        videoPreview.addEventListener('loadedmetadata', onMetadataLoaded, { once: true });
+
+        // if metadata already loaded? (unlikely but check)
+        if (videoPreview.readyState >= 1) {
+          // metadata already available
+          onMetadataLoaded();
+        } else {
+          // set a timeout: if metadata doesn't load within 6 seconds, treat as error
+          setTimeout(() => {
+            if (!durationCheckFinished && currentFile === file) {
+              durationCheckFinished = true;
+              resetFile(true);
+              showError('Could not read video metadata (timed out). Please try another file.');
+            }
+          }, 7000);
+        }
+
+        // also listen for error on video element (corrupted file)
+        videoPreview.addEventListener('error', () => {
+          if (!durationCheckFinished) {
+            durationCheckFinished = true;
+            resetFile(true);
+            showError('Error loading video file. It may be corrupted or unsupported.');
+          }
+        }, { once: true });
+      }
+
+      // ---------- EVENT LISTENERS ----------
+      // 1. click on drop area or browse button triggers file input
+      dropArea.addEventListener('click', (e) => {
+        // if the click is directly on the browse button, avoid double trigger (but browseBtn also triggers)
+        if (e.target === browseBtn) return;
+        fileInput.click();
+      });
+
+      browseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+      });
+
+      // 2. file input change
+      fileInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (files.length > 0) {
+          // enforce exactly one file (take first)
+          const file = files[0];
+          processFile(file);
+        } else {
+          // user cancelled
+        }
+        // reset input so same file can be selected again after removal
+        fileInput.value = '';
+      });
+
+      // 3. drag & drop
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => {
+        dropArea.addEventListener(ev, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      });
+
+      dropArea.addEventListener('dragover', () => {
+        dropArea.classList.add('dragover');
+      });
+
+      dropArea.addEventListener('dragleave', () => {
+        dropArea.classList.remove('dragover');
+      });
+
+      dropArea.addEventListener('drop', (e) => {
+        dropArea.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          // take first file only
+          const file = files[0];
+          // check if it's a video (quick type check)
+          if (!file.type.startsWith('video/')) {
+            showError('Only video files are allowed.');
+            return;
+          }
+          processFile(file);
+        }
+      });
+
+      // 4. remove file button
+      removeFileBtn.addEventListener('click', () => {
+        resetFile();
+      });
+
+      // 5. clear all button (same as reset)
+      clearAllBtn.addEventListener('click', () => {
+        resetFile();
+      });
+
+      // 6. upload button
+      uploadBtn.addEventListener('click', () => {
+        if (!currentFile) {
+          showError('No video selected.');
+          return;
+        }
+
+        // double-check constraints (size & duration)
+        if (currentFile.size > MAX_SIZE_BYTES) {
+          showError('File exceeds 3 GB limit.');
+          resetFile(true);
+          return;
+        }
+        if (currentVideoDuration && currentVideoDuration > MAX_DURATION_SEC) {
+          showError('Video exceeds 30 minute limit.');
+          resetFile(true);
+          return;
+        }
+
+        // SIMULATE UPLOAD (in a real app, you'd use fetch / XMLHttpRequest)
+        // Here we just show success message and keep the file for preview.
+        // We'll also disable the upload button to prevent double upload.
+        uploadBtn.disabled = true;
+        showSuccess(`"${currentFile.name}" uploaded successfully! (simulated)`);
+
+        // Optional: after "upload" you could reset, but we keep the preview for demonstration.
+        // However, to match typical behavior, we keep the file visible but mark as uploaded.
+        // We'll also change the badge if needed? Not necessary.
+        // But we can update the durationRow to add a note.
+        if (durationRow) {
+          // add a subtle checkmark
+          const badge = durationRow.querySelector('.badge');
+          if (badge) badge.textContent = 'uploaded';
+        }
+      });
+
+      // 7. avoid memory leaks: revoke object URL when page unloads
+      window.addEventListener('beforeunload', () => {
+        revokeObjectUrl();
+      });
+
+      // 8. extra: when video ends or is played, ensure no unexpected behaviour
+      videoPreview.addEventListener('play', () => {
+        // optional: you might want to pause others, but not needed
+      });
+
+      // ---------- INIT ----------
+      // ensure upload button is disabled on page load
+      uploadBtn.disabled = true;
+      hideMessages();
+    })();
+  </script>
+</body>
+</html>
